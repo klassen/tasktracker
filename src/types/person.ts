@@ -3,7 +3,7 @@ export interface Person {
   name: string;
   color?: string;
   createdAt: string;
-  pointGoal?: number;
+  pointGoal: number;
   currentMonthPoints?: number;
 }
 
