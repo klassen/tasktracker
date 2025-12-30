@@ -10,11 +10,8 @@ import TenantSelector from '@/components/TenantSelector';
 import AccountManagement from '@/components/AccountManagement';
 import ChangePassword from '@/components/ChangePassword';
 
-interface Person {
-  id: number;
-  name: string;
-  pointGoal: number;
-}
+
+import type { Person } from '@/types/person';
 
 export default function Home() {
   const [loggedInTenantId, setLoggedInTenantId] = useState<number | 'admin' | null>(null);
