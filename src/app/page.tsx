@@ -13,7 +13,7 @@ import ChangePassword from '@/components/ChangePassword';
 interface Person {
   id: number;
   name: string;
-  pointGoal?: number;
+  pointGoal: number;
 }
 
 export default function Home() {
