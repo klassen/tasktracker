@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import MiniCalendar from './MiniCalendar';
 
 interface Person {
   id: number;
@@ -41,6 +42,8 @@ export default function Reporting({ people, tenantId }: ReportingProps) {
   const [loading, setLoading] = useState(false);
   const [editingGoal, setEditingGoal] = useState(false);
   const [newGoal, setNewGoal] = useState('');
+  const [selectedTask, setSelectedTask] = useState<{ id: number; title: string } | null>(null);
+  const [taskCompletions, setTaskCompletions] = useState<string[]>([]);
 
   useEffect(() => {
     if (people.length > 0 && !selectedPersonId) {
@@ -96,6 +99,22 @@ export default function Reporting({ people, tenantId }: ReportingProps) {
     } catch (error) {
       console.error('Failed to update goal:', error);
       alert('Failed to update point goal');
+    }
+  };
+
+  const handleTaskClick = async (taskId: number, taskTitle: string) => {
+    // Fetch completions first, then show calendar
+    try {
+      const response = await fetch(
+        `/api/tasks/${taskId}/completions?year=${year}&month=${month}&tenantId=${tenantId}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setTaskCompletions(data.completions.map((c: any) => c.completedDate));
+        setSelectedTask({ id: taskId, title: taskTitle });
+      }
+    } catch (error) {
+      console.error('Failed to fetch task completions:', error);
     }
   };
 
@@ -341,7 +360,8 @@ export default function Reporting({ people, tenantId }: ReportingProps) {
                     {reportData.taskSummaries.map((task) => (
                       <tr
                         key={task.taskId}
-                        className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+                        onClick={() => handleTaskClick(task.taskId, task.taskTitle)}
+                        className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
                       >
                         <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">
                           {task.taskTitle}
@@ -386,6 +406,16 @@ export default function Reporting({ people, tenantId }: ReportingProps) {
             )}
           </div>
         </>
+      )}
+
+      {selectedTask && (
+        <MiniCalendar
+          year={year}
+          month={month}
+          completionDates={taskCompletions}
+          taskTitle={selectedTask.title}
+          onClose={() => setSelectedTask(null)}
+        />
       )}
     </div>
   );
