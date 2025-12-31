@@ -59,11 +59,16 @@ export async function GET(request: NextRequest) {
 
     const calendar = google.calendar({ version: 'v3', auth });
     
-    // Get start and end of today in local time
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Get start and end of today in local time (YYYY-MM-DD)
+    const { getLocalDate } = await import('@/lib/utils/dateUtils');
+    const todayStr = getLocalDate(); // e.g. '2025-12-30'
+    // Construct local midnight boundaries in ISO format for Google API
+    const tzOffset = new Date().getTimezoneOffset() * 60000;
+    const localMidnight = new Date(new Date(todayStr + 'T00:00:00').getTime() - tzOffset);
+    const nextMidnight = new Date(localMidnight.getTime() + 24 * 60 * 60 * 1000);
+    const timeMin = localMidnight.toISOString();
+    const timeMax = nextMidnight.toISOString();
 
     const allEvents: any[] = [];
 
@@ -84,8 +89,8 @@ export async function GET(request: NextRequest) {
       try {
         const response = await calendar.events.list({
           calendarId,
-          timeMin: today.toISOString(),
-          timeMax: tomorrow.toISOString(),
+          timeMin,
+          timeMax,
           singleEvents: true,
           orderBy: 'startTime',
         });
