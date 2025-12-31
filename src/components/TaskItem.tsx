@@ -31,6 +31,8 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
     try {
       const response = await fetch(`/api/tasks/${task.id}/complete?tenantId=${tenantId}`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completedDate: today }),
       });
 
       if (response.ok) {

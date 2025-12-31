@@ -10,9 +10,11 @@ export async function POST(
   try {
     const { id } = await params;
     const taskId = parseInt(id);
-    const today = getLocalDate();
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
+    const body = await request.json().catch(() => ({}));
+    // Use completedDate from client if provided, else fallback to server local date
+    const completedDate = typeof body.completedDate === 'string' ? body.completedDate : getLocalDate();
 
     if (!tenantId) {
       return NextResponse.json(
@@ -47,7 +49,7 @@ export async function POST(
       where: {
         taskId_completedDate: {
           taskId,
-          completedDate: today,
+          completedDate,
         },
       },
     });
@@ -64,7 +66,7 @@ export async function POST(
       await prisma.taskCompletion.create({
         data: {
           taskId,
-          completedDate: today,
+          completedDate,
           createdAt: getLocalDateTime(),
         },
       });
