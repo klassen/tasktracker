@@ -12,13 +12,18 @@ interface TaskItemProps {
   tenantId: number;
 }
 
+
 export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenantId }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTask, setEditedTask] = useState(task);
-
-  // Check if task is completed today
   const today = getLocalDate();
-  const isCompletedToday = task.completions?.some(c => c.completedDate === today) || false;
+  // Local optimistic completion state
+  const [optimisticCompleted, setOptimisticCompleted] = useState<null | boolean>(null);
+  const [error, setError] = useState<string | null>(null);
+  const isCompletedToday =
+    optimisticCompleted !== null
+      ? optimisticCompleted
+      : task.completions?.some(c => c.completedDate === today) || false;
 
   // Parse active days for display
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -26,22 +31,26 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
   const activeDayLabels = activeDayNumbers.map(d => daysOfWeek[d]).join(', ');
 
   const handleTaskClick = async () => {
-    if (isEditing) return; // Don't toggle if editing
-    
+    if (isEditing) return;
+    setError(null);
+    // Optimistically toggle completion
+    setOptimisticCompleted(!isCompletedToday);
     try {
       const response = await fetch(`/api/tasks/${task.id}/complete?tenantId=${tenantId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ completedDate: today }),
       });
-
       if (response.ok) {
         const data = await response.json();
-        // If task was deleted (one-off completion), trigger update to remove from list
         onUpdate();
+      } else {
+        throw new Error('Failed to toggle task completion');
       }
     } catch (error) {
-      console.error('Failed to toggle task completion:', error);
+      setError('Failed to update task. Please try again.');
+      // Revert optimistic update
+      setOptimisticCompleted(isCompletedToday);
     }
   };
 
@@ -108,6 +117,11 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
           : 'bg-white dark:bg-gray-800 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
       }`}
     >
+      {error && (
+        <div className="mb-2 p-2 bg-red-100 dark:bg-red-900/30 border border-red-500 rounded text-red-700 dark:text-red-400 text-xs">
+          {error}
+        </div>
+      )}
       {isEditing ? (
         <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
           <input
