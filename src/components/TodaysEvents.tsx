@@ -23,13 +23,20 @@ export default function TodaysEvents({ tenantId }: TodaysEventsProps) {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
 
+
   useEffect(() => {
     fetchEvents();
   }, []);
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch(`/api/calendar/events?tenantId=${tenantId}`);
+      // Always use the user's local date for event fetching
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const localDate = `${year}-${month}-${day}`;
+      const response = await fetch(`/api/calendar/events?tenantId=${tenantId}&localDate=${localDate}`);
       if (response.ok) {
         const data = await response.json();
         setEvents(data.events || []);

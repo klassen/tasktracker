@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
+    const localDate = searchParams.get('localDate');
 
     if (!tenantId) {
       return NextResponse.json(
@@ -60,12 +61,11 @@ export async function GET(request: NextRequest) {
     const calendar = google.calendar({ version: 'v3', auth });
     
 
-    // Get start and end of today in local time (YYYY-MM-DD)
-    const { getLocalDate } = await import('@/lib/utils/dateUtils');
-    const todayStr = getLocalDate(); // e.g. '2025-12-30'
+    // Use the user's local date if provided, else fallback to server local date
+    const dateStr = localDate || (await import('@/lib/utils/dateUtils')).getLocalDate();
     // Construct local midnight boundaries in ISO format for Google API
     const tzOffset = new Date().getTimezoneOffset() * 60000;
-    const localMidnight = new Date(new Date(todayStr + 'T00:00:00').getTime() - tzOffset);
+    const localMidnight = new Date(new Date(dateStr + 'T00:00:00').getTime() - tzOffset);
     const nextMidnight = new Date(localMidnight.getTime() + 24 * 60 * 60 * 1000);
     const timeMin = localMidnight.toISOString();
     const timeMax = nextMidnight.toISOString();
