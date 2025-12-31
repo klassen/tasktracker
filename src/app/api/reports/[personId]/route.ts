@@ -1,6 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+// Helper function to calculate possible completions for a task in a date range
+function calculatePossibleCompletions(activeDays: string, startDate: string, endDate: string): number {
+  const activeDayNumbers = activeDays.split(',').map(d => parseInt(d.trim()));
+  let count = 0;
+  
+  const start = new Date(startDate + 'T00:00:00');
+  const end = new Date(endDate + 'T00:00:00');
+  
+  for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+    const dayOfWeek = date.getDay();
+    if (activeDayNumbers.includes(dayOfWeek)) {
+      count++;
+    }
+  }
+  
+  return count;
+}
+
 // GET /api/reports/[personId]?year=2025&month=12&tenantId=1
 export async function GET(
   request: NextRequest,
@@ -61,7 +79,12 @@ export async function GET(
     const monthNum = parseInt(month);
     const startDate = `${year}-${month.padStart(2, '0')}-01`;
     const lastDay = new Date(yearNum, monthNum, 0).getDate();
-    const endDate = `${year}-${month.padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+    
+    // For current month, use today as end date (prorated), otherwise use last day of month
+    const now = new Date();
+    const isCurrentMonth = yearNum === now.getFullYear() && monthNum === (now.getMonth() + 1);
+    const currentDay = isCurrentMonth ? now.getDate() : lastDay;
+    const endDate = `${year}-${month.padStart(2, '0')}-${currentDay.toString().padStart(2, '0')}`;
 
     // Get all tasks assigned to this person with their completions for the month
     const tasks = await prisma.task.findMany({
@@ -83,26 +106,36 @@ export async function GET(
       },
     });
 
-    // Calculate total points earned
+    // Calculate total points earned and task summaries
     let totalPoints = 0;
-    const completionDetails: any[] = [];
+    let totalCompletions = 0;
+    const taskSummaries: any[] = [];
 
     tasks.forEach(task => {
-      task.completions.forEach(completion => {
-        const points = task.points || 0;
-        totalPoints += points;
-        completionDetails.push({
-          taskId: task.id,
-          taskTitle: task.title,
-          completedDate: completion.completedDate,
-          points: points,
-          money: task.money || 0,
-        });
+      const completionCount = task.completions.length;
+      const pointsPerCompletion = task.points || 0;
+      const taskTotalPoints = pointsPerCompletion * completionCount;
+      
+      // Calculate possible completions based on active days
+      const possibleCompletions = calculatePossibleCompletions(task.activeDays, startDate, endDate);
+      const percentComplete = possibleCompletions > 0 ? (completionCount / possibleCompletions) * 100 : 0;
+      
+      totalPoints += taskTotalPoints;
+      totalCompletions += completionCount;
+      
+      taskSummaries.push({
+        taskId: task.id,
+        taskTitle: task.title,
+        completionCount,
+        possibleCompletions,
+        percentComplete: Math.round(percentComplete), // Round to whole number
+        pointsPerCompletion,
+        totalPoints: taskTotalPoints,
       });
     });
 
-    // Sort completions by date
-    completionDetails.sort((a, b) => a.completedDate.localeCompare(b.completedDate));
+    // Sort by completion count (descending)
+    taskSummaries.sort((a, b) => b.completionCount - a.completionCount);
 
     return NextResponse.json({
       person: {
@@ -113,8 +146,8 @@ export async function GET(
       year: yearNum,
       month: monthNum,
       totalPoints,
-      completionCount: completionDetails.length,
-      completions: completionDetails,
+      completionCount: totalCompletions,
+      taskSummaries,
       progress: person.pointGoal ? (totalPoints / person.pointGoal) * 100 : 0,
     });
   } catch (error) {

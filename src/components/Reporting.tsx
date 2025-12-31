@@ -8,12 +8,14 @@ interface Person {
   pointGoal: number;
 }
 
-interface CompletionDetail {
+interface TaskSummary {
   taskId: number;
   taskTitle: string;
-  completedDate: string;
-  points: number;
-  money: number;
+  completionCount: number;
+  possibleCompletions: number;
+  percentComplete: number;
+  pointsPerCompletion: number;
+  totalPoints: number;
 }
 
 interface ReportData {
@@ -22,7 +24,7 @@ interface ReportData {
   month: number;
   totalPoints: number;
   completionCount: number;
-  completions: CompletionDetail[];
+  taskSummaries: TaskSummary[];
   progress: number;
 }
 
@@ -304,44 +306,82 @@ export default function Reporting({ people, tenantId }: ReportingProps) {
             </div>
           )}
 
-          {/* Completion Details */}
+          {/* Task Summary Table */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-              Completion Details
+              Task Summary
             </h3>
-            {reportData.completions.length === 0 ? (
+            {reportData.taskSummaries.length === 0 ? (
               <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                No tasks completed this month
+                No tasks assigned
               </p>
             ) : (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {reportData.completions.map((completion, index) => (
-                  <div
-                    key={`${completion.taskId}-${completion.completedDate}-${index}`}
-                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {completion.taskTitle}
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        {formatDate(completion.completedDate)}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {completion.points > 0 && (
-                        <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                          +{completion.points} pts
-                        </div>
-                      )}
-                      {completion.money > 0 && (
-                        <div className="text-sm font-semibold text-green-600 dark:text-green-400">
-                          ${completion.money.toFixed(2)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-100 dark:bg-gray-700">
+                      <th className="px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b-2 border-gray-300 dark:border-gray-600">
+                        Task
+                      </th>
+                      <th className="px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b-2 border-gray-300 dark:border-gray-600 text-center">
+                        Times Completed
+                      </th>
+                      <th className="px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b-2 border-gray-300 dark:border-gray-600 text-right">
+                        Points/Task
+                      </th>
+                      <th className="px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b-2 border-gray-300 dark:border-gray-600 text-right">
+                        Total Points
+                      </th>
+                      <th className="px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b-2 border-gray-300 dark:border-gray-600 text-center">
+                        % Complete
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData.taskSummaries.map((task) => (
+                      <tr
+                        key={task.taskId}
+                        className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+                      >
+                        <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">
+                          {task.taskTitle}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                            {task.completionCount}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300">
+                          {task.pointsPerCompletion > 0 ? task.pointsPerCompletion : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right font-semibold text-blue-600 dark:text-blue-400">
+                          {task.totalPoints > 0 ? task.totalPoints : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="flex-1 max-w-[100px] bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                              <div
+                                className={`h-2 rounded-full transition-all ${
+                                  task.percentComplete >= 100
+                                    ? 'bg-green-500'
+                                    : task.percentComplete >= 75
+                                    ? 'bg-blue-500'
+                                    : task.percentComplete >= 50
+                                    ? 'bg-yellow-500'
+                                    : 'bg-orange-500'
+                                }`}
+                                style={{ width: `${Math.min(task.percentComplete, 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 min-w-[45px]">
+                              {task.percentComplete}%
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
