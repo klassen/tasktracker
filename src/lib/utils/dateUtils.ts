@@ -112,3 +112,21 @@ export function isTaskActiveToday(activeDays: string): boolean {
   const days = activeDays.split(',').map(d => parseInt(d.trim()));
   return days.includes(today);
 }
+
+/**
+ * Get an array of the last N days as date strings
+ * @param days - Number of days to include (including today)
+ * @returns Array of date strings in format YYYY-MM-DD, from oldest to newest
+ */
+export function getLastNDays(days: number): string[] {
+  const dates: string[] = [];
+  const today = new Date();
+  
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - i);
+    dates.push(formatLocalDate(date));
+  }
+  
+  return dates;
+}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Task } from '@/types/task';
-import { getLocalDate } from '@/lib/utils/dateUtils';
+import { getLocalDate, getLastNDays } from '@/lib/utils/dateUtils';
 
 interface TaskItemProps {
   task: Task;
@@ -29,6 +29,11 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const activeDayNumbers = task.activeDays.split(',').map(d => parseInt(d.trim()));
   const activeDayLabels = activeDayNumbers.map(d => daysOfWeek[d]).join(', ');
+
+  // Calculate 7-day completion count
+  const last7Days = getLastNDays(7);
+  const completedDates = task.completions?.map(c => c.completedDate) || [];
+  const completedInLast7 = last7Days.filter(date => completedDates.includes(date)).length;
 
   const handleTaskClick = async () => {
     if (isEditing) return;
@@ -287,9 +292,10 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
                   )}
                 </div>
               )}
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                📅 Active: {activeDayLabels}
-              </p>
+              <div className="flex gap-3 text-sm text-gray-500 dark:text-gray-400">
+                <span>📅 Active: {activeDayLabels}</span>
+                <span className="font-semibold">🔥 {completedInLast7}/7 days</span>
+              </div>
             </div>
           </div>
 
