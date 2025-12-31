@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         assignedTo: true,
         completions: true,
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { displayOrder: 'asc' }
     });
     return NextResponse.json(tasks);
   } catch (error) {

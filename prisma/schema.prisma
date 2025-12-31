@@ -41,6 +41,7 @@ model Task {
   updatedAt   String           // Local datetime string: YYYY-MM-DD HH:MM:SS
   points      Int?             // Optional points value
   money       Float?           // Optional money value
+  displayOrder Int            @default(0) // Order for display (lower numbers appear first)
   assignedToId Int?
   assignedTo   Person?         @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
   completions  TaskCompletion[]

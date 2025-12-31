@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { Task } from '@/types/task';
 import { getLocalDate, getLastNDays } from '@/lib/utils/dateUtils';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface TaskItemProps {
   task: Task;
@@ -24,6 +26,24 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
     optimisticCompleted !== null
       ? optimisticCompleted
       : task.completions?.some(c => c.completedDate === today) || false;
+
+  // Drag and drop
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: isDragging ? 'none' : transition,
+    opacity: isDragging ? 0.5 : 1,
+    touchAction: 'none',
+    willChange: isDragging ? 'transform' : 'auto',
+  };
 
   // Parse active days for display
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -115,6 +135,10 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
 
   return (
     <div 
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
       onClick={handleTaskClick}
       className={`rounded-lg shadow-md p-6 transition-all cursor-pointer ${
         isCompletedToday
