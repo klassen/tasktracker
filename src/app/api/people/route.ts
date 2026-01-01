@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getLocalDate } from '@/lib/utils/dateUtils';
+import { getLocalDate, getLocalDateTime } from '@/lib/utils/dateUtils';
 
 // GET /api/people?tenantId=1 - Get all people for a tenant
 export async function GET(request: NextRequest) {
