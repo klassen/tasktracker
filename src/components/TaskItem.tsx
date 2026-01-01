@@ -35,14 +35,15 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
     transform,
     transition,
     isDragging,
+    setActivatorNodeRef,
   } = useSortable({ id: task.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? 'none' : transition,
-    opacity: isDragging ? 0.5 : 1,
-    touchAction: 'none',
+    opacity: isDragging ? 0.8 : 1,
     willChange: isDragging ? 'transform' : 'auto',
+    scale: isDragging ? '1.05' : '1',
   };
 
   // Parse active days for display
@@ -137,15 +138,34 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
     <div 
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
       onClick={handleTaskClick}
       className={`rounded-lg shadow-md p-6 transition-all cursor-pointer ${
         isCompletedToday
           ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-500'
+          : isDragging
+          ? 'bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-500 shadow-2xl'
           : 'bg-white dark:bg-gray-800 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
       }`}
     >
+      {/* Drag handle */}
+      <div
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
+        onClick={(e) => e.stopPropagation()}
+        className="float-right ml-2 p-2 -mt-2 -mr-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+        style={{ touchAction: 'none' }}
+        title="Drag to reorder"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="9" cy="5" r="1.5" />
+          <circle cx="9" cy="12" r="1.5" />
+          <circle cx="9" cy="19" r="1.5" />
+          <circle cx="15" cy="5" r="1.5" />
+          <circle cx="15" cy="12" r="1.5" />
+          <circle cx="15" cy="19" r="1.5" />
+        </svg>
+      </div>
       {error && (
         <div className="mb-2 p-2 bg-red-100 dark:bg-red-900/30 border border-red-500 rounded text-red-700 dark:text-red-400 text-xs">
           {error}
