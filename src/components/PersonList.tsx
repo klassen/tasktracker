@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Person } from '@/types/person';
+import { getLocalDate } from '@/lib/utils/dateUtils';
 
 interface PersonListProps {
   selectedPersonId: number | null;
@@ -103,9 +104,11 @@ export default function PersonList({ selectedPersonId, onSelectPerson, isAdminMo
       return null;
     }
 
-    const now = new Date();
-    const currentDay = now.getDate();
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    // Use local date to get current day
+    const today = getLocalDate(); // YYYY-MM-DD
+    const [year, month, day] = today.split('-').map(Number);
+    const currentDay = day;
+    const daysInMonth = new Date(year, month, 0).getDate();
     
     const expectedPoints = (person.pointGoal / daysInMonth) * currentDay;
     

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getLocalDateTime } from '@/lib/utils/dateUtils';
+import { getLocalDate } from '@/lib/utils/dateUtils';
 
 // GET /api/people?tenantId=1 - Get all people for a tenant
 export async function GET(request: NextRequest) {
@@ -20,10 +20,9 @@ export async function GET(request: NextRequest) {
       orderBy: { name: 'asc' },
     });
 
-    // Calculate current month points for each person
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
+    // Calculate current month points using local date
+    const today = getLocalDate(); // YYYY-MM-DD
+    const [year, month] = today.split('-').map(Number);
     const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
     const lastDay = new Date(year, month, 0).getDate();
     const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;

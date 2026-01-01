@@ -42,8 +42,7 @@ export default function TaskList({ selectedPersonId, isAdminMode, tenantId, onTa
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 200,
-        tolerance: 8,
+        delay: 250,
       },
     }),
     useSensor(KeyboardSensor, {
