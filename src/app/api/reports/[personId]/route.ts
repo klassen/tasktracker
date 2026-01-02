@@ -88,6 +88,8 @@ export async function GET(
     const currentDay = isCurrentMonth ? currentDayStr : lastDay;
     const endDate = `${year}-${month.padStart(2, '0')}-${currentDay.toString().padStart(2, '0')}`;
 
+    console.log('Reporting calculation:', { today, currentYear, currentMonth, currentDay: currentDayStr, yearNum, monthNum, isCurrentMonth, startDate, endDate });
+
     // Get all tasks assigned to this person with their completions for the month
     const tasks = await prisma.task.findMany({
       where: {
