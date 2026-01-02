@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getLocalDate } from '@/lib/utils/dateUtils';
 
 // Helper function to calculate possible completions for a task in a date range
 function calculatePossibleCompletions(activeDays: string, startDate: string, endDate: string): number {
@@ -81,9 +82,10 @@ export async function GET(
     const lastDay = new Date(yearNum, monthNum, 0).getDate();
     
     // For current month, use today as end date (prorated), otherwise use last day of month
-    const now = new Date();
-    const isCurrentMonth = yearNum === now.getFullYear() && monthNum === (now.getMonth() + 1);
-    const currentDay = isCurrentMonth ? now.getDate() : lastDay;
+    const today = getLocalDate(); // YYYY-MM-DD
+    const [currentYear, currentMonth, currentDayStr] = today.split('-').map(Number);
+    const isCurrentMonth = yearNum === currentYear && monthNum === currentMonth;
+    const currentDay = isCurrentMonth ? currentDayStr : lastDay;
     const endDate = `${year}-${month.padStart(2, '0')}-${currentDay.toString().padStart(2, '0')}`;
 
     // Get all tasks assigned to this person with their completions for the month
