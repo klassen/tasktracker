@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
+    const localDate = searchParams.get('localDate'); // Client's local date
 
     if (!tenantId) {
       return NextResponse.json(
@@ -20,11 +21,12 @@ export async function GET(request: NextRequest) {
       orderBy: { name: 'asc' },
     });
 
-    // Calculate current month points using local date
-    const today = getLocalDate(); // YYYY-MM-DD
+    // Calculate current month points using client's local date
+    // CRITICAL: Client sends localDate to avoid UTC timezone issues
+    const today = localDate || getLocalDate(); // Use client's date, fallback for backward compatibility
     const [year, month] = today.split('-').map(Number);
     const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
+    const lastDay = new Date(year, month, 0).getDate(); // This is OK - just calculating days in month
     const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
 
     const peopleWithProgress = await Promise.all(
@@ -95,7 +97,7 @@ export async function POST(request: NextRequest) {
         color: color || null,
         pointGoal: null,
         tenantId,
-        createdAt: getLocalDateTime(),
+        createdAt: getLocalDateTime(), // Record timestamp - not used for business logic
       },
     });
 

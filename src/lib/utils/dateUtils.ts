@@ -3,6 +3,28 @@
  * 
  * 🚨 CRITICAL: Always use local time, NEVER UTC or ISO dates!
  * All dates in the database are stored as local datetime strings (YYYY-MM-DD HH:MM:SS).
+ * 
+ * ⚠️ SERVER-SIDE USAGE WARNING:
+ * Do NOT use getLocalDate() or getLocalDateTime() in API routes for business logic
+ * that depends on "today" or current date/time, because:
+ * - Development server runs in your local timezone
+ * - Production server (Vercel) runs in UTC timezone
+ * - This causes date mismatches (e.g., Jan 1 locally vs Jan 2 in UTC)
+ * 
+ * CORRECT PATTERN for APIs:
+ * 1. Client calls getLocalDate() to get their local date
+ * 2. Client sends localDate as query param or request body
+ * 3. Server uses the client-provided date for all calculations
+ * 
+ * ACCEPTABLE SERVER-SIDE USES:
+ * - Record timestamps (createdAt, updatedAt) - these are metadata, not business logic
+ * - Backward compatibility fallbacks (with comments explaining why)
+ * 
+ * Examples of APIs fixed to use this pattern:
+ * - /api/calendar/events - requires localDate param
+ * - /api/tasks/[id]/complete - requires completedDate in body
+ * - /api/reports/[personId] - requires localDate param
+ * - /api/people - requires localDate param
  */
 
 /**

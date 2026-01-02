@@ -46,6 +46,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update display order for each task
+    // NOTE: getLocalDateTime() is OK here - only used for updatedAt timestamp, not business logic
     const now = getLocalDateTime();
     const updates = taskOrders.map(({ id, displayOrder }) =>
       prisma.task.update({

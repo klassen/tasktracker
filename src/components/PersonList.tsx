@@ -33,7 +33,8 @@ export default function PersonList({ selectedPersonId, onSelectPerson, isAdminMo
 
   const fetchPeople = async () => {
     try {
-      const response = await fetch(`/api/people?tenantId=${tenantId}`);
+      const localDate = getLocalDate(); // Client's local date
+      const response = await fetch(`/api/people?tenantId=${tenantId}&localDate=${localDate}`);
       if (response.ok) {
         const data = await response.json();
         setPeople(data);

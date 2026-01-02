@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import MiniCalendar from './MiniCalendar';
+import { getLocalDate } from '@/lib/utils/dateUtils';
 
 interface Person {
   id: number;
@@ -62,8 +63,9 @@ export default function Reporting({ people, tenantId }: ReportingProps) {
 
     setLoading(true);
     try {
+      const localDate = getLocalDate(); // Send client's local date to server
       const response = await fetch(
-        `/api/reports/${selectedPersonId}?year=${year}&month=${month}&tenantId=${tenantId}`
+        `/api/reports/${selectedPersonId}?year=${year}&month=${month}&tenantId=${tenantId}&localDate=${localDate}`
       );
       if (response.ok) {
         const data = await response.json();

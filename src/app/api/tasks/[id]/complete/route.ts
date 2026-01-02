@@ -14,6 +14,8 @@ export async function POST(
     const tenantId = searchParams.get('tenantId');
     const body = await request.json().catch(() => ({}));
     // Use completedDate from client if provided, else fallback to server local date
+    // CRITICAL: Client MUST send completedDate to avoid timezone issues
+    // Fallback to getLocalDate() only for backward compatibility
     const completedDate = typeof body.completedDate === 'string' ? body.completedDate : getLocalDate();
 
     if (!tenantId) {
@@ -67,7 +69,7 @@ export async function POST(
         data: {
           taskId,
           completedDate,
-          createdAt: getLocalDateTime(),
+          createdAt: getLocalDateTime(), // Record timestamp - not used for business logic
         },
       });
 

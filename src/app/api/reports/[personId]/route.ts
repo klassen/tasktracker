@@ -40,6 +40,7 @@ export async function GET(
     const year = searchParams.get('year');
     const month = searchParams.get('month');
     const tenantId = searchParams.get('tenantId');
+    const localDate = searchParams.get('localDate'); // Client's local date
 
     if (!year || !month) {
       return NextResponse.json(
@@ -82,7 +83,7 @@ export async function GET(
     const lastDay = new Date(yearNum, monthNum, 0).getDate();
     
     // For current month, use today as end date (prorated), otherwise use last day of month
-    const today = getLocalDate(); // YYYY-MM-DD
+    const today = localDate || getLocalDate(); // Use client's date if provided, fallback to server
     const [currentYear, currentMonth, currentDayStr] = today.split('-').map(Number);
     const isCurrentMonth = yearNum === currentYear && monthNum === currentMonth;
     const currentDay = isCurrentMonth ? currentDayStr : lastDay;
