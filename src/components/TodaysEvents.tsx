@@ -113,7 +113,14 @@ export default function TodaysEvents({ tenantId }: TodaysEventsProps) {
   if (events.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+        <h3 
+          className="text-sm font-semibold text-gray-900 dark:text-white mb-2 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          onClick={() => {
+            setLoading(true);
+            fetchEvents();
+          }}
+          title="Click to refresh events"
+        >
           📅 Today
         </h3>
         <p className="text-xs text-gray-500 dark:text-gray-400">No events</p>
@@ -123,8 +130,16 @@ export default function TodaysEvents({ tenantId }: TodaysEventsProps) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sticky top-8">
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+      <h3 
+        className="text-sm font-semibold text-gray-900 dark:text-white mb-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2"
+        onClick={() => {
+          setLoading(true);
+          fetchEvents();
+        }}
+        title="Click to refresh events"
+      >
         📅 Today ({events.length})
+        {loading && <span className="animate-spin">↻</span>}
       </h3>
       <div className="space-y-2 max-h-[calc(100vh-8rem)] overflow-y-auto">
         {events.map((event) => {
