@@ -63,12 +63,26 @@ export async function GET(request: NextRequest) {
 
     // Use the user's local date if provided, else fallback to server local date
     const dateStr = localDate || (await import('@/lib/utils/dateUtils')).getLocalDate();
+    
+    console.log('[Calendar API] ==================== CALENDAR EVENT FETCH ====================');
+    console.log('[Calendar API] Client provided localDate:', localDate);
+    console.log('[Calendar API] Using dateStr:', dateStr);
+    console.log('[Calendar API] Server Date object:', new Date().toString());
+    console.log('[Calendar API] Server timezone offset (minutes):', new Date().getTimezoneOffset());
+    
     // Construct local midnight boundaries in ISO format for Google API
     const tzOffset = new Date().getTimezoneOffset() * 60000;
     const localMidnight = new Date(new Date(dateStr + 'T00:00:00').getTime() - tzOffset);
     const nextMidnight = new Date(localMidnight.getTime() + 24 * 60 * 60 * 1000);
     const timeMin = localMidnight.toISOString();
     const timeMax = nextMidnight.toISOString();
+    
+    console.log('[Calendar API] Date string being parsed:', dateStr + 'T00:00:00');
+    console.log('[Calendar API] tzOffset (ms):', tzOffset);
+    console.log('[Calendar API] localMidnight:', localMidnight.toISOString());
+    console.log('[Calendar API] nextMidnight:', nextMidnight.toISOString());
+    console.log('[Calendar API] timeMin (sent to Google):', timeMin);
+    console.log('[Calendar API] timeMax (sent to Google):', timeMax);
 
     const allEvents: any[] = [];
 
@@ -87,6 +101,7 @@ export async function GET(request: NextRequest) {
     // Fetch events from each selected calendar
     for (const calendarId of calendarIds) {
       try {
+        console.log(`[Calendar API] Fetching events from calendar: ${calendarId}`);
         const response = await calendar.events.list({
           calendarId,
           timeMin,
@@ -94,6 +109,11 @@ export async function GET(request: NextRequest) {
           singleEvents: true,
           orderBy: 'startTime',
         });
+
+        console.log(`[Calendar API] Calendar ${calendarId} returned ${response.data.items?.length || 0} events`);
+        if (response.data.items && response.data.items.length > 0) {
+          console.log(`[Calendar API] First event:`, response.data.items[0]);
+        }
 
         const events = response.data.items?.map((event: any) => ({
           id: event.id,
@@ -110,7 +130,7 @@ export async function GET(request: NextRequest) {
 
         allEvents.push(...events);
       } catch (error) {
-        console.error(`Error fetching events from calendar ${calendarId}:`, error);
+        console.error(`[Calendar API] Error fetching events from calendar ${calendarId}:`, error);
         // Continue with other calendars
       }
     }
@@ -121,6 +141,9 @@ export async function GET(request: NextRequest) {
       const bTime = new Date(b.start).getTime();
       return aTime - bTime;
     });
+
+    console.log(`[Calendar API] Total events returned: ${allEvents.length}`);
+    console.log('[Calendar API] ==================== END CALENDAR FETCH ====================');
 
     return NextResponse.json({ events: allEvents, authenticated: true });
   } catch (error: any) {

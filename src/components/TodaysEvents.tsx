@@ -36,14 +36,23 @@ export default function TodaysEvents({ tenantId }: TodaysEventsProps) {
       const month = String(today.getMonth() + 1).padStart(2, '0');
       const day = String(today.getDate()).padStart(2, '0');
       const localDate = `${year}-${month}-${day}`;
+      
+      console.log('[TodaysEvents] Fetching events for local date:', localDate);
+      console.log('[TodaysEvents] Browser Date object:', today.toString());
+      console.log('[TodaysEvents] Browser timezone offset (minutes):', today.getTimezoneOffset());
+      
       const response = await fetch(`/api/calendar/events?tenantId=${tenantId}&localDate=${localDate}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('[TodaysEvents] Received events:', data.events?.length || 0);
+        console.log('[TodaysEvents] Events data:', data);
         setEvents(data.events || []);
         setAuthenticated(data.authenticated !== false);
+      } else {
+        console.error('[TodaysEvents] Response not OK:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Failed to fetch events:', error);
+      console.error('[TodaysEvents] Failed to fetch events:', error);
     } finally {
       setLoading(false);
     }
