@@ -36,12 +36,14 @@ export default function TodaysEvents({ tenantId }: TodaysEventsProps) {
       const month = String(today.getMonth() + 1).padStart(2, '0');
       const day = String(today.getDate()).padStart(2, '0');
       const localDate = `${year}-${month}-${day}`;
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       
       console.log('[TodaysEvents] Fetching events for local date:', localDate);
+      console.log('[TodaysEvents] Browser timezone:', timeZone);
       console.log('[TodaysEvents] Browser Date object:', today.toString());
       console.log('[TodaysEvents] Browser timezone offset (minutes):', today.getTimezoneOffset());
       
-      const response = await fetch(`/api/calendar/events?tenantId=${tenantId}&localDate=${localDate}`);
+      const response = await fetch(`/api/calendar/events?tenantId=${tenantId}&localDate=${localDate}&timeZone=${encodeURIComponent(timeZone)}`);
       if (response.ok) {
         const data = await response.json();
         console.log('[TodaysEvents] Received events:', data.events?.length || 0);

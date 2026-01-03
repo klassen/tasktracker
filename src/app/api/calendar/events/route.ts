@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
     const localDate = searchParams.get('localDate');
+    const timeZone = searchParams.get('timeZone') || 'America/Chicago'; // Default to CST
 
     if (!tenantId) {
       return NextResponse.json(
@@ -66,23 +67,19 @@ export async function GET(request: NextRequest) {
     
     console.log('[Calendar API] ==================== CALENDAR EVENT FETCH ====================');
     console.log('[Calendar API] Client provided localDate:', localDate);
+    console.log('[Calendar API] Client provided timeZone:', timeZone);
     console.log('[Calendar API] Using dateStr:', dateStr);
     console.log('[Calendar API] Server Date object:', new Date().toString());
     console.log('[Calendar API] Server timezone offset (minutes):', new Date().getTimezoneOffset());
     
-    // Construct local midnight boundaries in ISO format for Google API
-    const tzOffset = new Date().getTimezoneOffset() * 60000;
-    const localMidnight = new Date(new Date(dateStr + 'T00:00:00').getTime() - tzOffset);
-    const nextMidnight = new Date(localMidnight.getTime() + 24 * 60 * 60 * 1000);
-    const timeMin = localMidnight.toISOString();
-    const timeMax = nextMidnight.toISOString();
+    // Create date boundaries in the user's timezone
+    // Google Calendar API will interpret these as local times in the specified timezone
+    const timeMin = `${dateStr}T00:00:00`;
+    const timeMax = `${dateStr}T23:59:59`;
     
-    console.log('[Calendar API] Date string being parsed:', dateStr + 'T00:00:00');
-    console.log('[Calendar API] tzOffset (ms):', tzOffset);
-    console.log('[Calendar API] localMidnight:', localMidnight.toISOString());
-    console.log('[Calendar API] nextMidnight:', nextMidnight.toISOString());
     console.log('[Calendar API] timeMin (sent to Google):', timeMin);
     console.log('[Calendar API] timeMax (sent to Google):', timeMax);
+    console.log('[Calendar API] timeZone (sent to Google):', timeZone);
 
     const allEvents: any[] = [];
 
@@ -106,6 +103,7 @@ export async function GET(request: NextRequest) {
           calendarId,
           timeMin,
           timeMax,
+          timeZone, // Tell Google to interpret times in user's timezone
           singleEvents: true,
           orderBy: 'startTime',
         });
