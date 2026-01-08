@@ -72,10 +72,30 @@ export async function GET(request: NextRequest) {
     console.log('[Calendar API] Server Date object:', new Date().toString());
     console.log('[Calendar API] Server timezone offset (minutes):', new Date().getTimezoneOffset());
     
-    // Create date boundaries in the user's timezone
-    // Google Calendar API will interpret these as local times in the specified timezone
-    const timeMin = `${dateStr}T00:00:00`;
-    const timeMax = `${dateStr}T23:59:59`;
+    // Get timezone offset for the specified timezone
+    // For America/Chicago: CST is UTC-6 (-06:00), CDT is UTC-5 (-05:00)
+    // We need to determine current offset based on the date
+    const testDate = new Date(`${dateStr}T12:00:00`);
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      timeZoneName: 'longOffset'
+    });
+    const parts = formatter.formatToParts(testDate);
+    const offsetPart = parts.find(part => part.type === 'timeZoneName');
+    let offset = '-06:00'; // Default to CST
+    if (offsetPart && offsetPart.value.includes('GMT')) {
+      // Extract offset from "GMT-6" or "GMT-5" format
+      const match = offsetPart.value.match(/GMT([+-])(\d+)/);
+      if (match) {
+        const sign = match[1];
+        const hours = match[2].padStart(2, '0');
+        offset = `${sign}${hours}:00`;
+      }
+    }
+    
+    // Create date boundaries in RFC3339 format with timezone offset
+    const timeMin = `${dateStr}T00:00:00${offset}`;
+    const timeMax = `${dateStr}T23:59:59${offset}`;
     
     console.log('[Calendar API] timeMin (sent to Google):', timeMin);
     console.log('[Calendar API] timeMax (sent to Google):', timeMax);

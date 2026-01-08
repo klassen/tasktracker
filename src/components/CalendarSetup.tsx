@@ -77,7 +77,7 @@ export default function CalendarSetup({ tenantId }: CalendarSetupProps) {
     if (!confirm('Are you sure you want to disconnect Google Calendar?')) return;
 
     try {
-      const response = await fetch('/api/calendar/status', {
+      const response = await fetch(`/api/calendar/status?tenantId=${tenantId}`, {
         method: 'DELETE',
       });
 
