@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Task } from '@/types/task';
 import { getLocalDate, getLastNDays } from '@/lib/utils/dateUtils';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import CompletionDatePicker from './CompletionDatePicker';
 
 interface TaskItemProps {
   task: Task;
@@ -18,6 +20,7 @@ interface TaskItemProps {
 export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenantId }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTask, setEditedTask] = useState(task);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const today = getLocalDate();
   // Local optimistic completion state
   const [optimisticCompleted, setOptimisticCompleted] = useState<null | boolean>(null);
@@ -58,6 +61,14 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
 
   const handleTaskClick = async () => {
     if (isEditing) return;
+    
+    // In admin mode, show date picker instead of toggling today
+    if (isAdminMode) {
+      setShowDatePicker(true);
+      return;
+    }
+    
+    // Non-admin mode: toggle today's completion
     setError(null);
     // Optimistically toggle completion
     setOptimisticCompleted(!isCompletedToday);
@@ -76,6 +87,30 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
     } catch (error) {
       setError('Failed to update task. Please try again.');
       // Revert optimistic update
+      setOptimisticCompleted(isCompletedToday);
+    }
+  };
+
+  const handleDateSelection = async (selectedDate: string) => {
+    setError(null);
+    try {
+      const response = await fetch(`/api/tasks/${task.id}/complete?tenantId=${tenantId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completedDate: selectedDate }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        onUpdate();
+        // Update optimistic state if we toggled today
+        if (selectedDate === today) {
+          setOptimisticCompleted(!isCompletedToday);
+        }
+      } else {
+        throw new Error('Failed to toggle task completion');
+      }
+    } catch (error) {
+      setError('Failed to update task. Please try again.');
       setOptimisticCompleted(isCompletedToday);
     }
   };
@@ -362,6 +397,16 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
             )}
           </div>
         </>
+      )}
+
+      {/* Date picker modal for admin mode - rendered via portal */}
+      {showDatePicker && typeof window !== 'undefined' && createPortal(
+        <CompletionDatePicker
+          completedDates={task.completions?.map(c => c.completedDate) || []}
+          onSelectDate={handleDateSelection}
+          onClose={() => setShowDatePicker(false)}
+        />,
+        document.body
       )}
     </div>
   );
