@@ -161,7 +161,7 @@ export default function PersonList({ selectedPersonId, onSelectPerson, isAdminMo
                 <div className="flex-1 flex items-center justify-between gap-2">
                   <span className="text-lg font-medium">{person.name}</span>
                   {progress !== null && (
-                    <span className={`text-sm font-bold ${selectedPersonId === person.id ? 'text-white' : getProgressColor(progress)}`}>
+                    <span className={`text-sm font-bold whitespace-nowrap ${selectedPersonId === person.id ? 'text-white' : getProgressColor(progress)}`}>
                       {progress}%
                     </span>
                   )}

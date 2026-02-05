@@ -162,8 +162,8 @@ export default function Home() {
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           <div className="lg:col-span-4 space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <div className="lg:col-span-1">
+            <div className="flex flex-col lg:flex-row gap-6">
+              <div className="lg:min-w-fit">
                 <PersonList 
                   selectedPersonId={selectedPersonId}
                   onSelectPerson={setSelectedPersonId}
@@ -177,7 +177,7 @@ export default function Home() {
                   onPeopleChange={setPeople}
                 />
               </div>
-              <div className="lg:col-span-3">
+              <div className="flex-1">
                 {isAdminMode && showReporting ? (
                   <Reporting people={people} tenantId={loggedInTenantId} />
                 ) : (
