@@ -13,7 +13,8 @@ interface Person {
 interface TaskSummary {
   taskId: number;
   taskTitle: string;
-  completionCount: number;
+  completedCount: number;
+  excludedCount: number;
   possibleCompletions: number;
   percentComplete: number;
   pointsPerCompletion: number;
@@ -44,7 +45,7 @@ export default function Reporting({ people, tenantId }: ReportingProps) {
   const [editingGoal, setEditingGoal] = useState(false);
   const [newGoal, setNewGoal] = useState('');
   const [selectedTask, setSelectedTask] = useState<{ id: number; title: string } | null>(null);
-  const [taskCompletions, setTaskCompletions] = useState<string[]>([]);
+  const [taskCompletions, setTaskCompletions] = useState<Array<{ completedDate: string; status: 'completed' | 'excluded' }>>([]);
 
   useEffect(() => {
     if (people.length > 0 && !selectedPersonId) {
@@ -112,7 +113,7 @@ export default function Reporting({ people, tenantId }: ReportingProps) {
       );
       if (response.ok) {
         const data = await response.json();
-        setTaskCompletions(data.completions.map((c: any) => c.completedDate));
+        setTaskCompletions(data.completions);
         setSelectedTask({ id: taskId, title: taskTitle });
       }
     } catch (error) {
@@ -345,7 +346,10 @@ export default function Reporting({ people, tenantId }: ReportingProps) {
                         Task
                       </th>
                       <th className="px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b-2 border-gray-300 dark:border-gray-600 text-center">
-                        Times Completed
+                        Completed
+                      </th>
+                      <th className="px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b-2 border-gray-300 dark:border-gray-600 text-center">
+                        Excluded
                       </th>
                       <th className="px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b-2 border-gray-300 dark:border-gray-600 text-right">
                         Points/Task
@@ -369,9 +373,18 @@ export default function Reporting({ people, tenantId }: ReportingProps) {
                           {task.taskTitle}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <span className="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                            {task.completionCount}
+                          <span className="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                            {task.completedCount}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {task.excludedCount > 0 ? (
+                            <span className="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300">
+                              {task.excludedCount}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 dark:text-gray-500">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300">
                           {task.pointsPerCompletion > 0 ? task.pointsPerCompletion : '—'}
@@ -414,7 +427,7 @@ export default function Reporting({ people, tenantId }: ReportingProps) {
         <MiniCalendar
           year={year}
           month={month}
-          completionDates={taskCompletions}
+          completions={taskCompletions}
           taskTitle={selectedTask.title}
           onClose={() => setSelectedTask(null)}
         />

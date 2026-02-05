@@ -53,6 +53,7 @@ export async function GET(
       },
       select: {
         completedDate: true,
+        status: true,
       },
       orderBy: {
         completedDate: 'asc',

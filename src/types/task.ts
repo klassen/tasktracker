@@ -2,6 +2,7 @@ export interface TaskCompletion {
   id: number;
   taskId: number;
   completedDate: string; // YYYY-MM-DD
+  status: 'completed' | 'excluded'; // Status of the completion
   createdAt: string;
 }
 

@@ -117,21 +117,25 @@ export async function GET(
     const taskSummaries: any[] = [];
 
     tasks.forEach(task => {
-      const completionCount = task.completions.length;
+      const completedCount = task.completions.filter(c => c.status === 'completed').length;
+      const excludedCount = task.completions.filter(c => c.status === 'excluded').length;
       const pointsPerCompletion = task.points || 0;
-      const taskTotalPoints = pointsPerCompletion * completionCount;
+      const taskTotalPoints = pointsPerCompletion * completedCount; // Only count completed tasks for points
       
       // Calculate possible completions based on active days
       const possibleCompletions = calculatePossibleCompletions(task.activeDays, startDate, endDate);
-      const percentComplete = possibleCompletions > 0 ? (completionCount / possibleCompletions) * 100 : 0;
+      // Adjust possible completions by removing excluded days
+      const adjustedPossible = possibleCompletions - excludedCount;
+      const percentComplete = adjustedPossible > 0 ? (completedCount / adjustedPossible) * 100 : 0;
       
       totalPoints += taskTotalPoints;
-      totalCompletions += completionCount;
+      totalCompletions += completedCount;
       
       taskSummaries.push({
         taskId: task.id,
         taskTitle: task.title,
-        completionCount,
+        completedCount,
+        excludedCount,
         possibleCompletions,
         percentComplete: Math.round(percentComplete), // Round to whole number
         pointsPerCompletion,
@@ -140,7 +144,7 @@ export async function GET(
     });
 
     // Sort by completion count (descending)
-    taskSummaries.sort((a, b) => b.completionCount - a.completionCount);
+    taskSummaries.sort((a, b) => b.completedCount - a.completedCount);
 
     return NextResponse.json({
       person: {

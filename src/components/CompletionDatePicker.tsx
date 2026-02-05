@@ -5,17 +5,20 @@ import { getLocalDate, formatLocalDate } from '@/lib/utils/dateUtils';
 
 interface CompletionDatePickerProps {
   completedDates: string[]; // Array of dates this task is completed on
-  onSelectDate: (date: string) => void;
+  completions: Array<{ completedDate: string; status: 'completed' | 'excluded' }>;
+  onSelectDate: (date: string, status: 'completed' | 'excluded') => void;
   onClose: () => void;
 }
 
 export default function CompletionDatePicker({ 
-  completedDates, 
+  completedDates,
+  completions,
   onSelectDate, 
   onClose 
 }: CompletionDatePickerProps) {
   const today = getLocalDate();
   const [selectedDate, setSelectedDate] = useState(today);
+  const [selectedStatus, setSelectedStatus] = useState<'completed' | 'excluded'>('completed');
 
   // Close on escape key
   useEffect(() => {
@@ -28,7 +31,12 @@ export default function CompletionDatePicker({
 
   // Get last 30 days for quick selection
   const getLast30Days = () => {
-    const days: { date: string; dayName: string; isCompleted: boolean; isToday: boolean }[] = [];
+    const days: { 
+      date: string; 
+      dayName: string; 
+      completionStatus: 'completed' | 'excluded' | null;
+      isToday: boolean 
+    }[] = [];
     const now = new Date();
     
     for (let i = 0; i < 30; i++) {
@@ -37,10 +45,12 @@ export default function CompletionDatePicker({
       const dateStr = formatLocalDate(date);
       const dayName = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       
+      const completion = completions.find(c => c.completedDate === dateStr);
+      
       days.push({
         date: dateStr,
         dayName,
-        isCompleted: completedDates.includes(dateStr),
+        completionStatus: completion ? completion.status : null,
         isToday: dateStr === today,
       });
     }
@@ -49,9 +59,13 @@ export default function CompletionDatePicker({
   };
 
   const days = getLast30Days();
+  
+  // Get status of currently selected date
+  const selectedDateCompletion = completions.find(c => c.completedDate === selectedDate);
+  const currentStatus = selectedDateCompletion?.status || null;
 
-  const handleConfirm = () => {
-    onSelectDate(selectedDate);
+  const handleConfirm = (status: 'completed' | 'excluded') => {
+    onSelectDate(selectedDate, status);
     onClose();
   };
 
@@ -104,11 +118,16 @@ export default function CompletionDatePicker({
                 className={`w-full px-4 py-2 text-left flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
                   selectedDate === day.date ? 'bg-blue-50 dark:bg-blue-900/30' : ''
                 } ${
-                  day.isCompleted ? 'font-semibold' : ''
+                  day.completionStatus ? 'font-semibold' : ''
                 }`}
               >
                 <span className="flex items-center gap-2">
-                  {day.isCompleted && <span className="text-green-600 dark:text-green-400">✓</span>}
+                  {day.completionStatus === 'completed' && (
+                    <span className="text-green-600 dark:text-green-400" title="Completed">✓</span>
+                  )}
+                  {day.completionStatus === 'excluded' && (
+                    <span className="text-orange-500 dark:text-orange-400" title="Excluded">⊘</span>
+                  )}
                   <span className={day.isToday ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-gray-900 dark:text-white'}>
                     {day.dayName}
                     {day.isToday && ' (Today)'}
@@ -123,12 +142,41 @@ export default function CompletionDatePicker({
         </div>
 
         <div className="flex gap-2">
-          <button
-            onClick={handleConfirm}
-            className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
-          >
-            {completedDates.includes(selectedDate) ? 'Remove Completion' : 'Mark Complete'}
-          </button>
+          {currentStatus ? (
+            <>
+              <button
+                onClick={() => handleConfirm(currentStatus === 'completed' ? 'excluded' : 'completed')}
+                className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  currentStatus === 'completed'
+                    ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                    : 'bg-green-600 hover:bg-green-700 text-white'
+                }`}
+              >
+                {currentStatus === 'completed' ? '⊘ Mark Excluded' : '✓ Mark Completed'}
+              </button>
+              <button
+                onClick={() => handleConfirm(currentStatus)}
+                className="flex-1 px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-lg font-semibold transition-colors"
+              >
+                Remove Mark
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => handleConfirm('completed')}
+                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
+              >
+                ✓ Mark Completed
+              </button>
+              <button
+                onClick={() => handleConfirm('excluded')}
+                className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                ⊘ Mark Excluded
+              </button>
+            </>
+          )}
           <button
             onClick={onClose}
             className="px-4 py-2 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-white rounded-lg font-semibold transition-colors"

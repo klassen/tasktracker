@@ -3,12 +3,12 @@
 interface MiniCalendarProps {
   year: number;
   month: number;
-  completionDates: string[]; // Array of YYYY-MM-DD strings
+  completions: Array<{ completedDate: string; status: 'completed' | 'excluded' }>;
   taskTitle: string;
   onClose: () => void;
 }
 
-export default function MiniCalendar({ year, month, completionDates, taskTitle, onClose }: MiniCalendarProps) {
+export default function MiniCalendar({ year, month, completions, taskTitle, onClose }: MiniCalendarProps) {
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month, 0).getDate();
   };
@@ -35,9 +35,10 @@ export default function MiniCalendar({ year, month, completionDates, taskTitle, 
     days.push(day);
   }
 
-  const isCompletedDate = (day: number) => {
+  const getCompletionStatus = (day: number): 'completed' | 'excluded' | null => {
     const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return completionDates.includes(dateString);
+    const completion = completions.find(c => c.completedDate === dateString);
+    return completion ? completion.status : null;
   };
 
   return (
@@ -74,28 +75,39 @@ export default function MiniCalendar({ year, month, completionDates, taskTitle, 
           ))}
 
           {/* Calendar days */}
-          {days.map((day, index) => (
-            <div
-              key={index}
-              className={`
-                aspect-square flex items-center justify-center text-sm rounded
-                ${day === null ? '' : 'text-gray-900 dark:text-white'}
-                ${day !== null && isCompletedDate(day) 
-                  ? 'bg-green-500 text-white font-bold' 
-                  : day !== null 
-                  ? 'bg-gray-100 dark:bg-gray-700' 
-                  : ''
-                }
-              `}
-            >
-              {day}
-            </div>
-          ))}
+          {days.map((day, index) => {
+            const status = day !== null ? getCompletionStatus(day) : null;
+            return (
+              <div
+                key={index}
+                className={`
+                  aspect-square flex items-center justify-center text-sm rounded
+                  ${day === null ? '' : 'text-gray-900 dark:text-white'}
+                  ${status === 'completed'
+                    ? 'bg-green-500 text-white font-bold' 
+                    : status === 'excluded'
+                    ? 'bg-orange-500 text-white font-bold'
+                    : day !== null 
+                    ? 'bg-gray-100 dark:bg-gray-700' 
+                    : ''
+                  }
+                `}
+              >
+                {day}
+              </div>
+            );
+          })}
         </div>
 
-        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 text-center">
-          <span className="inline-block w-4 h-4 bg-green-500 rounded mr-2"></span>
-          Completed ({completionDates.length} days)
+        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 text-center flex justify-center gap-4">
+          <div>
+            <span className="inline-block w-4 h-4 bg-green-500 rounded mr-1"></span>
+            Completed ({completions.filter(c => c.status === 'completed').length})
+          </div>
+          <div>
+            <span className="inline-block w-4 h-4 bg-orange-500 rounded mr-1"></span>
+            Excluded ({completions.filter(c => c.status === 'excluded').length})
+          </div>
         </div>
       </div>
     </div>

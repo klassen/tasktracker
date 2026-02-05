@@ -24,11 +24,15 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
   const today = getLocalDate();
   // Local optimistic completion state
   const [optimisticCompleted, setOptimisticCompleted] = useState<null | boolean>(null);
+  const [optimisticStatus, setOptimisticStatus] = useState<'completed' | 'excluded' | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const isCompletedToday =
-    optimisticCompleted !== null
-      ? optimisticCompleted
-      : task.completions?.some(c => c.completedDate === today) || false;
+  
+  const todayCompletion = task.completions?.find(c => c.completedDate === today);
+  const isCompletedToday = optimisticCompleted !== null 
+    ? optimisticCompleted 
+    : todayCompletion?.status === 'completed';
+  const isExcludedToday = optimisticStatus === 'excluded' || 
+    (optimisticStatus === null && todayCompletion?.status === 'excluded');
 
   // Drag and drop
   const {
@@ -54,10 +58,14 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
   const activeDayNumbers = task.activeDays.split(',').map(d => parseInt(d.trim()));
   const activeDayLabels = activeDayNumbers.map(d => daysOfWeek[d]).join(', ');
 
-  // Calculate 7-day completion count
+  // Calculate 7-day completion count (only count 'completed', not 'excluded')
   const last7Days = getLastNDays(7);
-  const completedDates = task.completions?.map(c => c.completedDate) || [];
-  const completedInLast7 = last7Days.filter(date => completedDates.includes(date)).length;
+  const completedInLast7 = last7Days.filter(date => 
+    task.completions?.some(c => c.completedDate === date && c.status === 'completed')
+  ).length;
+  const excludedInLast7 = last7Days.filter(date => 
+    task.completions?.some(c => c.completedDate === date && c.status === 'excluded')
+  ).length;
 
   const handleTaskClick = async () => {
     if (isEditing) return;
@@ -72,11 +80,12 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
     setError(null);
     // Optimistically toggle completion
     setOptimisticCompleted(!isCompletedToday);
+    setOptimisticStatus('completed');
     try {
       const response = await fetch(`/api/tasks/${task.id}/complete?tenantId=${tenantId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ completedDate: today }),
+        body: JSON.stringify({ completedDate: today, status: 'completed' }),
       });
       if (response.ok) {
         const data = await response.json();
@@ -88,30 +97,31 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
       setError('Failed to update task. Please try again.');
       // Revert optimistic update
       setOptimisticCompleted(isCompletedToday);
+      setOptimisticStatus(null);
     }
   };
 
-  const handleDateSelection = async (selectedDate: string) => {
+  const handleDateSelection = async (selectedDate: string, status: 'completed' | 'excluded') => {
     setError(null);
     try {
       const response = await fetch(`/api/tasks/${task.id}/complete?tenantId=${tenantId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ completedDate: selectedDate }),
+        body: JSON.stringify({ completedDate: selectedDate, status }),
       });
       if (response.ok) {
         const data = await response.json();
         onUpdate();
-        // Update optimistic state if we toggled today
+        // Update optimistic state if we modified today
         if (selectedDate === today) {
-          setOptimisticCompleted(!isCompletedToday);
+          setOptimisticCompleted(data.completed && data.status === 'completed');
+          setOptimisticStatus(data.status);
         }
       } else {
         throw new Error('Failed to toggle task completion');
       }
     } catch (error) {
       setError('Failed to update task. Please try again.');
-      setOptimisticCompleted(isCompletedToday);
     }
   };
 
@@ -177,6 +187,8 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
       className={`rounded-lg shadow-md p-6 transition-all cursor-pointer ${
         isCompletedToday
           ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-500'
+          : isExcludedToday
+          ? 'bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-500'
           : isDragging
           ? 'bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-500 shadow-2xl'
           : 'bg-white dark:bg-gray-800 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
@@ -374,6 +386,9 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
               <div className="flex gap-3 text-sm text-gray-500 dark:text-gray-400">
                 <span>📅 Active: {activeDayLabels}</span>
                 <span className="font-semibold">🔥 {completedInLast7}/7 days</span>
+                {excludedInLast7 > 0 && (
+                  <span className="font-semibold text-orange-600 dark:text-orange-400">⊘ {excludedInLast7} excluded</span>
+                )}
               </div>
             </div>
           </div>
@@ -403,6 +418,7 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
       {showDatePicker && typeof window !== 'undefined' && createPortal(
         <CompletionDatePicker
           completedDates={task.completions?.map(c => c.completedDate) || []}
+          completions={task.completions || []}
           onSelectDate={handleDateSelection}
           onClose={() => setShowDatePicker(false)}
         />,

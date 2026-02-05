@@ -52,6 +52,7 @@ model TaskCompletion {
   taskId        Int
   task          Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
   completedDate String // Local date string: YYYY-MM-DD
+  status        String @default("completed") // "completed" or "excluded"
   createdAt     String // Local datetime string: YYYY-MM-DD HH:MM:SS
 
   @@unique([taskId, completedDate])
