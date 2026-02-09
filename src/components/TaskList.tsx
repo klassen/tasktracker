@@ -140,12 +140,18 @@ export default function TaskList({ selectedPersonId, isAdminMode, tenantId, onTa
 
       if (!response.ok) {
         // Revert on error
-        fetchTasks();
+        if (selectedPersonId !== null) {
+          setLoading(true);
+          fetchTasks(selectedPersonId);
+        }
       }
     } catch (error) {
       console.error('Failed to reorder tasks:', error);
       // Revert on error
-      fetchTasks();
+      if (selectedPersonId !== null) {
+        setLoading(true);
+        fetchTasks(selectedPersonId);
+      }
     }
   };
 
