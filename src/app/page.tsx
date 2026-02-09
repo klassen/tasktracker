@@ -14,6 +14,7 @@ import ChangePassword from '@/components/ChangePassword';
 import type { Person } from '@/types/person';
 
 export default function Home() {
+  const [isHydrated, setIsHydrated] = useState(false);
   const [loggedInTenantId, setLoggedInTenantId] = useState<number | 'admin' | null>(null);
   const [loggedInTenantName, setLoggedInTenantName] = useState<string>('');
   const [selectedPersonId, setSelectedPersonId] = useState<number | null>(null);
@@ -33,6 +34,7 @@ export default function Home() {
       setLoggedInTenantId(tenantId);
       setLoggedInTenantName(savedTenantName);
     }
+    setIsHydrated(true);
   }, []);
 
   const handleRefreshSetup = useCallback((fn: () => void) => {
@@ -70,6 +72,18 @@ export default function Home() {
       setSelectedPersonId(people[0].id);
     }
   }, [people, selectedPersonId]);
+
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+          <div className="animate-pulse text-gray-600 dark:text-gray-400">
+            Loading...
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // If not logged in, show login screen
   if (!loggedInTenantId) {
