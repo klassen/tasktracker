@@ -24,6 +24,7 @@ export default function Home() {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [people, setPeople] = useState<Person[]>([]);
   const [refreshPeople, setRefreshPeople] = useState<(() => void) | null>(null);
+  const isPersonReady = selectedPersonId !== null || people.length === 0;
 
   // Load login state from localStorage on mount
   useEffect(() => {
@@ -195,12 +196,18 @@ export default function Home() {
                 {isAdminMode && showReporting ? (
                   <Reporting people={people} tenantId={loggedInTenantId} />
                 ) : (
-                  <TaskList 
-                    selectedPersonId={selectedPersonId}
-                    isAdminMode={isAdminMode}
-                    tenantId={loggedInTenantId}
-                    onTaskUpdate={() => refreshPeople?.()}
-                  />
+                  isPersonReady ? (
+                    <TaskList 
+                      selectedPersonId={selectedPersonId}
+                      isAdminMode={isAdminMode}
+                      tenantId={loggedInTenantId}
+                      onTaskUpdate={() => refreshPeople?.()}
+                    />
+                  ) : (
+                    <div className="flex justify-center items-center py-12">
+                      <div className="text-gray-600 dark:text-gray-400">Loading tasks...</div>
+                    </div>
+                  )
                 )}
               </div>
             </div>
