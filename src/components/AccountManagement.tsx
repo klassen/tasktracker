@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getLocalDate } from '@/lib/utils/dateUtils';
 
 interface Tenant {
   id: number;
@@ -8,9 +9,20 @@ interface Tenant {
   createdAt: string;
 }
 
+interface TenantStats {
+  tenantId: number;
+  tenantName: string;
+  peopleCount: number;
+  taskCount: number;
+  usageDaysInMonth: number;
+}
+
 export default function AccountManagement() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [stats, setStats] = useState<TenantStats[]>([]);
+  const [statsError, setStatsError] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTenantName, setNewTenantName] = useState('');
   const [newTenantPassword, setNewTenantPassword] = useState('');
@@ -21,6 +33,7 @@ export default function AccountManagement() {
 
   useEffect(() => {
     fetchTenants();
+    fetchStats();
   }, []);
 
   const fetchTenants = async () => {
@@ -34,6 +47,27 @@ export default function AccountManagement() {
       console.error('Failed to fetch tenants:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      setStatsLoading(true);
+      setStatsError('');
+      const localDate = getLocalDate();
+      const response = await fetch(`/api/admin/stats?localDate=${localDate}`);
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      } else {
+        const data = await response.json();
+        setStatsError(data.error || 'Failed to load activity stats');
+      }
+    } catch (error) {
+      console.error('Failed to fetch admin stats:', error);
+      setStatsError('Failed to load activity stats');
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -61,6 +95,7 @@ export default function AccountManagement() {
         setShowPassword(false);
         setShowAddForm(false);
         fetchTenants();
+        fetchStats();
       } else {
         const data = await response.json();
         alert(data.error || 'Failed to add account');
@@ -112,6 +147,60 @@ export default function AccountManagement() {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Account Activity
+        </h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          Current month usage (based on task completions)
+        </p>
+
+        <div className="mt-4 overflow-x-auto">
+          {statsLoading ? (
+            <div className="text-gray-600 dark:text-gray-400">Loading activity stats...</div>
+          ) : statsError ? (
+            <div className="text-red-600 dark:text-red-400 text-sm">{statsError}</div>
+          ) : (
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                  <th className="py-2 pr-4 font-semibold">Account</th>
+                  <th className="py-2 pr-4 font-semibold">People</th>
+                  <th className="py-2 pr-4 font-semibold">Active Tasks</th>
+                  <th className="py-2 pr-4 font-semibold">Usage Days</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.length === 0 ? (
+                  <tr>
+                    <td className="py-3 text-gray-500 dark:text-gray-400" colSpan={4}>
+                      No accounts available.
+                    </td>
+                  </tr>
+                ) : (
+                  stats.map((stat) => (
+                    <tr key={stat.tenantId} className="border-b border-gray-100 dark:border-gray-700">
+                      <td className="py-3 pr-4 text-gray-900 dark:text-white font-medium">
+                        {stat.tenantName}
+                      </td>
+                      <td className="py-3 pr-4 text-gray-700 dark:text-gray-300">
+                        {stat.peopleCount}
+                      </td>
+                      <td className="py-3 pr-4 text-gray-700 dark:text-gray-300">
+                        {stat.taskCount}
+                      </td>
+                      <td className="py-3 pr-4 text-gray-700 dark:text-gray-300">
+                        {stat.usageDaysInMonth}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Account Management
