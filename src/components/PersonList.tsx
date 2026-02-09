@@ -126,11 +126,7 @@ export default function PersonList({ selectedPersonId, onSelectPerson, isAdminMo
   };
 
   if (loading) {
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-        <div className="animate-pulse">Loading people...</div>
-      </div>
-    );
+    return null;
   }
 
   return (

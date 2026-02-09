@@ -23,8 +23,9 @@ export default function Home() {
   const [showReporting, setShowReporting] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [people, setPeople] = useState<Person[]>([]);
+  const [peopleLoaded, setPeopleLoaded] = useState(false);
   const [refreshPeople, setRefreshPeople] = useState<(() => void) | null>(null);
-  const isPersonReady = selectedPersonId !== null || people.length === 0;
+  const isPersonReady = selectedPersonId !== null || (peopleLoaded && people.length === 0);
 
   // Load login state from localStorage on mount
   useEffect(() => {
@@ -57,6 +58,8 @@ export default function Home() {
     setIsAdminMode(false);
     setShowCalendarSetup(false);
     setShowReporting(false);
+    setPeople([]);
+    setPeopleLoaded(false);
     // Clear from localStorage
     localStorage.removeItem('loggedInTenantId');
     localStorage.removeItem('loggedInTenantName');
@@ -65,6 +68,7 @@ export default function Home() {
   // Reset person selection when tenant changes
   useEffect(() => {
     setSelectedPersonId(null);
+    setPeopleLoaded(false);
   }, [loggedInTenantId]);
 
   // Auto-select first person when people list is loaded
@@ -73,6 +77,11 @@ export default function Home() {
       setSelectedPersonId(people[0].id);
     }
   }, [people, selectedPersonId]);
+
+  const handlePeopleChange = useCallback((nextPeople: Person[]) => {
+    setPeople(nextPeople);
+    setPeopleLoaded(true);
+  }, []);
 
   if (!isHydrated) {
     return (
@@ -189,7 +198,7 @@ export default function Home() {
                     if (!showReporting) setShowCalendarSetup(false);
                   }}
                   onRefresh={handleRefreshSetup}
-                  onPeopleChange={setPeople}
+                  onPeopleChange={handlePeopleChange}
                 />
               </div>
               <div className="flex-1">
@@ -204,9 +213,7 @@ export default function Home() {
                       onTaskUpdate={() => refreshPeople?.()}
                     />
                   ) : (
-                    <div className="flex justify-center items-center py-12">
-                      <div className="text-gray-600 dark:text-gray-400">Loading tasks...</div>
-                    </div>
+                    <div className="py-12" />
                   )
                 )}
               </div>

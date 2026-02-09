@@ -97,13 +97,7 @@ export default function TodaysEvents({ tenantId }: TodaysEventsProps) {
   };
 
   if (loading) {
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3">
-        <div className="animate-pulse text-sm text-gray-600 dark:text-gray-400">
-          Loading events...
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (!authenticated) {
@@ -139,7 +133,6 @@ export default function TodaysEvents({ tenantId }: TodaysEventsProps) {
         title="Click to refresh events"
       >
         📅 Today ({events.length})
-        {loading && <span className="animate-spin">↻</span>}
       </h3>
       <div className="space-y-2 max-h-[calc(100vh-8rem)] overflow-y-auto">
         {events.map((event) => {

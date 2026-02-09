@@ -33,6 +33,9 @@ export default function TaskList({ selectedPersonId, isAdminMode, tenantId, onTa
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [activePersonId, setActivePersonId] = useState<number | null>(null);
+  const [lastLoadedPersonId, setLastLoadedPersonId] = useState<number | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -46,9 +49,16 @@ export default function TaskList({ selectedPersonId, isAdminMode, tenantId, onTa
     if (selectedPersonId === null) {
       setTasks([]);
       setLoading(false);
+      setIsSwitching(false);
+      setActivePersonId(null);
+      setLastLoadedPersonId(null);
       return;
     }
 
+    if (selectedPersonId !== activePersonId && tasks.length > 0) {
+      setIsSwitching(true);
+    }
+    setActivePersonId(selectedPersonId);
     setLoading(true);
     fetchTasks(selectedPersonId);
   }, [selectedPersonId, tenantId]);
@@ -59,11 +69,13 @@ export default function TaskList({ selectedPersonId, isAdminMode, tenantId, onTa
       if (response.ok) {
         const data = await response.json();
         setTasks(data);
+        setLastLoadedPersonId(personId);
         onTaskUpdate?.();
       }
     } catch (error) {
       console.error('Failed to fetch tasks:', error);
     }
+    requestAnimationFrame(() => setIsSwitching(false));
     setLoading(false);
   };
 
@@ -89,8 +101,13 @@ export default function TaskList({ selectedPersonId, isAdminMode, tenantId, onTa
     }
   };
 
+  const isAwaitingTasksForSelection = selectedPersonId !== null && lastLoadedPersonId !== selectedPersonId;
+  const displayPersonId = (isSwitching || isAwaitingTasksForSelection) && lastLoadedPersonId !== null
+    ? lastLoadedPersonId
+    : selectedPersonId;
+
   const filteredTasks = tasks.filter(task => {
-    const matchesPerson = selectedPersonId === null || task.assignedToId === selectedPersonId;
+    const matchesPerson = displayPersonId === null || task.assignedToId === displayPersonId;
     const isActiveToday = isTaskActiveToday(task.activeDays);
     return matchesPerson && isActiveToday;
   });
@@ -155,16 +172,8 @@ export default function TaskList({ selectedPersonId, isAdminMode, tenantId, onTa
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <div className="text-gray-600 dark:text-gray-400">Loading tasks...</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 transition-opacity duration-300 ${isSwitching ? 'opacity-60' : 'opacity-100'}`}>
       {isAdminMode && (
         <div className="flex justify-between items-center">
           <button
@@ -187,11 +196,13 @@ export default function TaskList({ selectedPersonId, isAdminMode, tenantId, onTa
         </div>
       )}
 
-      {filteredTasks.length === 0 ? (
+      {filteredTasks.length === 0 && (selectedPersonId === null || !isAwaitingTasksForSelection) ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
           <p className="text-gray-600 dark:text-gray-400">
             {selectedPersonId === null
               ? 'Select a person to view tasks.'
+              : loading || isSwitching || isAwaitingTasksForSelection
+              ? ''
               : tasks.length === 0
               ? 'No tasks yet. Create your first task!'
               : 'No tasks for this person.'}
