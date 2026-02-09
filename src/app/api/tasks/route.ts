@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
+    const personId = searchParams.get('personId');
 
     if (!tenantId) {
       return NextResponse.json(
@@ -20,6 +21,9 @@ export async function GET(request: NextRequest) {
         assignedTo: {
           tenantId: parseInt(tenantId),
         },
+        ...(personId
+          ? { assignedToId: parseInt(personId) }
+          : {}),
       },
       include: {
         assignedTo: true,

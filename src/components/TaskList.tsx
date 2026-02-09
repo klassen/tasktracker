@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Task } from '@/types/task';
 import TaskItem from './TaskItem';
 import TaskForm from './TaskForm';
-import { isTaskActiveToday, getLocalDate } from '@/lib/utils/dateUtils';
+import { isTaskActiveToday } from '@/lib/utils/dateUtils';
 import {
   DndContext,
   closestCenter,
@@ -43,12 +43,19 @@ export default function TaskList({ selectedPersonId, isAdminMode, tenantId, onTa
   );
 
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    if (selectedPersonId === null) {
+      setTasks([]);
+      setLoading(false);
+      return;
+    }
 
-  const fetchTasks = async () => {
+    setLoading(true);
+    fetchTasks(selectedPersonId);
+  }, [selectedPersonId, tenantId]);
+
+  const fetchTasks = async (personId: number) => {
     try {
-      const response = await fetch(`/api/tasks?tenantId=${tenantId}`);
+      const response = await fetch(`/api/tasks?tenantId=${tenantId}&personId=${personId}`);
       if (response.ok) {
         const data = await response.json();
         setTasks(data);
@@ -56,22 +63,30 @@ export default function TaskList({ selectedPersonId, isAdminMode, tenantId, onTa
       }
     } catch (error) {
       console.error('Failed to fetch tasks:', error);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const handleTaskCreated = () => {
     setShowForm(false);
-    fetchTasks();
+    if (selectedPersonId !== null) {
+      setLoading(true);
+      fetchTasks(selectedPersonId);
+    }
   };
 
   const handleTaskUpdated = () => {
-    fetchTasks();
+    if (selectedPersonId !== null) {
+      setLoading(true);
+      fetchTasks(selectedPersonId);
+    }
   };
 
   const handleTaskDeleted = () => {
-    fetchTasks();
+    if (selectedPersonId !== null) {
+      setLoading(true);
+      fetchTasks(selectedPersonId);
+    }
   };
 
   const filteredTasks = tasks.filter(task => {
@@ -169,7 +184,11 @@ export default function TaskList({ selectedPersonId, isAdminMode, tenantId, onTa
       {filteredTasks.length === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
           <p className="text-gray-600 dark:text-gray-400">
-            {tasks.length === 0 ? 'No tasks yet. Create your first task!' : 'No tasks for this person.'}
+            {selectedPersonId === null
+              ? 'Select a person to view tasks.'
+              : tasks.length === 0
+              ? 'No tasks yet. Create your first task!'
+              : 'No tasks for this person.'}
           </p>
         </div>
       ) : (
