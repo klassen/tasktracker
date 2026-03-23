@@ -13,6 +13,7 @@ model Tenant {
   id               Int                @id @default(autoincrement())
   name             String             @unique
   password         String             // Hashed password using bcrypt
+  adminPin         String?            // Hashed PIN for admin mode toggle (optional)
   createdAt        String             // Local datetime string: YYYY-MM-DD HH:MM:SS
   people           Person[]
   calendarSettings CalendarSettings?

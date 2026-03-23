@@ -12,10 +12,16 @@ export async function GET() {
         id: true,
         name: true,
         createdAt: true,
+        adminPin: true,
         // Don't return password hash
       },
     });
-    return NextResponse.json(tenants);
+    // Return hasPin flag instead of the raw hash
+    const result = tenants.map(({ adminPin, ...t }) => ({
+      ...t,
+      hasPin: adminPin !== null,
+    }));
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching tenants:', error);
     return NextResponse.json(

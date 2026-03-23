@@ -7,6 +7,7 @@ interface Tenant {
   id: number;
   name: string;
   createdAt: string;
+  hasPin: boolean;
 }
 
 interface TenantStats {
@@ -30,6 +31,8 @@ export default function AccountManagement() {
   const [resetPasswordTenantId, setResetPasswordTenantId] = useState<number | null>(null);
   const [resetNewPassword, setResetNewPassword] = useState('');
   const [showResetPassword, setShowResetPassword] = useState(false);
+  const [setPinTenantId, setSetPinTenantId] = useState<number | null>(null);
+  const [newPin, setNewPin] = useState('');
 
   useEffect(() => {
     fetchTenants();
@@ -38,7 +41,7 @@ export default function AccountManagement() {
 
   const fetchTenants = async () => {
     try {
-      const response = await fetch('/api/tenants');
+      const response = await fetch('/api/tenants?includePinStatus=true');
       if (response.ok) {
         const data = await response.json();
         setTenants(data);
@@ -103,6 +106,29 @@ export default function AccountManagement() {
     } catch (error) {
       console.error('Failed to add tenant:', error);
       alert('Failed to add account');
+    }
+  };
+
+  const handleSetPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!setPinTenantId) return;
+    try {
+      const response = await fetch(`/api/tenants/${setPinTenantId}/pin`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: newPin || null }),
+      });
+      if (response.ok) {
+        setSetPinTenantId(null);
+        setNewPin('');
+        fetchTenants();
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to set PIN');
+      }
+    } catch (error) {
+      console.error('Failed to set PIN:', error);
+      alert('Failed to set PIN');
     }
   };
 
@@ -301,19 +327,73 @@ export default function AccountManagement() {
                       ID: {tenant.id}
                     </p>
                   </div>
-                  <button
-                    onClick={() => setResetPasswordTenantId(tenant.id)}
-                    className="ml-2 px-3 py-1 text-sm bg-yellow-600 hover:bg-yellow-700 text-white rounded transition-colors"
-                    title="Reset Password"
-                  >
-                    🔑 Reset
-                  </button>
+                  <div className="flex flex-col gap-1 ml-2">
+                    <button
+                      onClick={() => setResetPasswordTenantId(tenant.id)}
+                      className="px-3 py-1 text-sm bg-yellow-600 hover:bg-yellow-700 text-white rounded transition-colors"
+                      title="Reset Password"
+                    >
+                      🔑 Reset
+                    </button>
+                    <button
+                      onClick={() => { setSetPinTenantId(tenant.id); setNewPin(''); }}
+                      className={`px-3 py-1 text-sm rounded transition-colors text-white ${
+                        tenant.hasPin
+                          ? 'bg-purple-600 hover:bg-purple-700'
+                          : 'bg-gray-500 hover:bg-gray-600'
+                      }`}
+                      title={tenant.hasPin ? 'Change or clear admin PIN' : 'Set admin PIN'}
+                    >
+                      {tenant.hasPin ? '🔒 PIN set' : '🔓 Set PIN'}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {setPinTenantId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              Admin PIN — {tenants.find(t => t.id === setPinTenantId)?.name}
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              This PIN is required to enable Admin Mode. Leave blank to remove the PIN.
+            </p>
+            <form onSubmit={handleSetPin} className="space-y-4">
+              <input
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={10}
+                value={newPin}
+                onChange={e => setNewPin(e.target.value)}
+                placeholder="Enter new PIN (leave blank to clear)"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center text-xl tracking-widest font-mono"
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold"
+                >
+                  {newPin ? 'Set PIN' : 'Clear PIN'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setSetPinTenantId(null); setNewPin(''); }}
+                  className="flex-1 px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-lg transition-colors font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {resetPasswordTenantId && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

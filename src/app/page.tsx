@@ -19,6 +19,14 @@ export default function Home() {
   const [loggedInTenantName, setLoggedInTenantName] = useState<string>('');
   const [selectedPersonId, setSelectedPersonId] = useState<number | null>(null);
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState(false);
+  const [pinVerifying, setPinVerifying] = useState(false);
+  const [pinRequired, setPinRequired] = useState(false);
+  const [showSetPin, setShowSetPin] = useState(false);
+  const [newPinInput, setNewPinInput] = useState('');
+  const [newPinSaving, setNewPinSaving] = useState(false);
   const [showCalendarSetup, setShowCalendarSetup] = useState(false);
   const [showReporting, setShowReporting] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -35,6 +43,13 @@ export default function Home() {
       const tenantId = savedTenantId === 'admin' ? 'admin' : parseInt(savedTenantId);
       setLoggedInTenantId(tenantId);
       setLoggedInTenantName(savedTenantName);
+      // Fetch whether this tenant requires a PIN
+      if (tenantId !== 'admin') {
+        fetch(`/api/tenants/${tenantId}/pin`)
+          .then(r => r.json())
+          .then(d => setPinRequired(!!d.required))
+          .catch(() => setPinRequired(false));
+      }
     }
     setIsHydrated(true);
   }, []);
@@ -49,6 +64,13 @@ export default function Home() {
     // Persist to localStorage
     localStorage.setItem('loggedInTenantId', tenantId.toString());
     localStorage.setItem('loggedInTenantName', tenantName);
+    // Fetch whether this tenant requires a PIN
+    if (tenantId !== 'admin') {
+      fetch(`/api/tenants/${tenantId}/pin`)
+        .then(r => r.json())
+        .then(d => setPinRequired(!!d.required))
+        .catch(() => setPinRequired(false));
+    }
   };
 
   const handleLogout = () => {
@@ -150,6 +172,14 @@ export default function Home() {
           <div className="flex gap-3">
             {isAdminMode && (
               <button
+                onClick={() => { setNewPinInput(''); setShowSetPin(true); }}
+                className="px-4 py-2 rounded-lg font-semibold transition-colors bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                🔐 Set PIN
+              </button>
+            )}
+            {isAdminMode && (
+              <button
                 onClick={() => {
                   setShowCalendarSetup(!showCalendarSetup);
                   if (!showCalendarSetup) setShowReporting(false);
@@ -160,7 +190,19 @@ export default function Home() {
               </button>
             )}
             <button
-              onClick={() => setIsAdminMode(!isAdminMode)}
+              onClick={() => {
+                if (isAdminMode) {
+                  setIsAdminMode(false);
+                  setShowCalendarSetup(false);
+                  setShowReporting(false);
+                } else if (pinRequired) {
+                  setPinInput('');
+                  setPinError(false);
+                  setShowPinModal(true);
+                } else {
+                  setIsAdminMode(true);
+                }
+              }}
               className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
                 isAdminMode
                   ? 'bg-red-600 hover:bg-red-700 text-white'
@@ -230,7 +272,136 @@ export default function Home() {
             onClose={() => setShowChangePassword(false)} 
           />
         )}
+
+        {showSetPin && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowSetPin(false)}>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-80" onClick={e => e.stopPropagation()}>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">🔐 Set Admin PIN</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                This PIN will be required to enable Admin Mode. Leave blank to remove the PIN.
+              </p>
+              <input
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={10}
+                autoFocus
+                value={newPinInput}
+                onChange={e => setNewPinInput(e.target.value)}
+                placeholder="Enter new PIN (blank to clear)"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-center text-2xl tracking-widest font-mono mb-4 bg-gray-50 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSetPin(false)}
+                  className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={newPinSaving}
+                  onClick={async () => {
+                    setNewPinSaving(true);
+                    try {
+                      await fetch(`/api/tenants/${loggedInTenantId}/pin`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pin: newPinInput || null }),
+                      });
+                      setPinRequired(!!newPinInput);
+                      setShowSetPin(false);
+                    } finally {
+                      setNewPinSaving(false);
+                    }
+                  }}
+                  className="flex-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold transition-colors"
+                >
+                  {newPinSaving ? 'Saving...' : newPinInput ? 'Set PIN' : 'Clear PIN'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {showPinModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowPinModal(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-80" onClick={e => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">🔒 Enter Admin PIN</h2>
+            <input
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={10}
+              autoFocus
+              value={pinInput}
+              onChange={e => { setPinInput(e.target.value); setPinError(false); }}
+              onKeyDown={async e => {
+                if (e.key === 'Enter' && !pinVerifying) {
+                  setPinVerifying(true);
+                  try {
+                    const res = await fetch(`/api/tenants/${loggedInTenantId}/pin`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ pin: pinInput }),
+                    });
+                    const data = await res.json();
+                    if (data.valid) {
+                      setIsAdminMode(true);
+                      setShowPinModal(false);
+                    } else {
+                      setPinError(true);
+                      setPinInput('');
+                    }
+                  } finally {
+                    setPinVerifying(false);
+                  }
+                } else if (e.key === 'Escape') {
+                  setShowPinModal(false);
+                }
+              }}
+              placeholder="Enter PIN"
+              className={`w-full px-4 py-3 rounded-lg border text-center text-2xl tracking-widest font-mono mb-3 bg-gray-50 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 ${pinError ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-400'}`}
+            />
+            {pinError && <p className="text-red-500 text-sm text-center mb-3">Incorrect PIN. Try again.</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowPinModal(false)}
+                className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={pinVerifying}
+                onClick={async () => {
+                  if (pinVerifying) return;
+                  setPinVerifying(true);
+                  try {
+                    const res = await fetch(`/api/tenants/${loggedInTenantId}/pin`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ pin: pinInput }),
+                    });
+                    const data = await res.json();
+                    if (data.valid) {
+                      setIsAdminMode(true);
+                      setShowPinModal(false);
+                    } else {
+                      setPinError(true);
+                      setPinInput('');
+                    }
+                  } finally {
+                    setPinVerifying(false);
+                  }
+                }}
+                className="flex-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold transition-colors"
+              >
+                {pinVerifying ? 'Checking...' : 'Unlock'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
