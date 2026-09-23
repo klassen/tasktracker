@@ -21,6 +21,8 @@ export async function GET(request: NextRequest) {
         assignedTo: {
           tenantId: parseInt(tenantId),
         },
+        // Retired tasks are removed going forward but kept for history/reporting
+        retiredAt: null,
         ...(personId
           ? { assignedToId: parseInt(personId) }
           : {}),

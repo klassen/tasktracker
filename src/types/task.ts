@@ -16,6 +16,7 @@ export interface Task {
   updatedAt: string;
   points: number | null;
   money: number | null;
+  retiredAt?: string | null; // Set when the task was removed going forward; history is kept
   assignedToId: number | null;
   assignedTo?: {
     id: number;

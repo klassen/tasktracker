@@ -119,11 +119,25 @@ export async function GET(
     tasks.forEach(task => {
       const completedCount = task.completions.filter(c => c.status === 'completed').length;
       const excludedCount = task.completions.filter(c => c.status === 'excluded').length;
+
+      // A retired task was only expected up to the day it was removed. Skip it
+      // entirely if it was already gone before this month began and earned nothing.
+      const retiredDate = task.retiredAt ? task.retiredAt.split(' ')[0] : null;
+      if (retiredDate && retiredDate < startDate && task.completions.length === 0) {
+        return;
+      }
+      const taskEndDate = retiredDate && retiredDate < endDate ? retiredDate : endDate;
+
       const pointsPerCompletion = task.points || 0;
       const taskTotalPoints = pointsPerCompletion * completedCount; // Only count completed tasks for points
-      
-      // Calculate possible completions based on active days
-      const possibleCompletions = calculatePossibleCompletions(task.activeDays, startDate, endDate);
+
+      // Calculate possible completions based on active days. A one-off task can only
+      // ever be done once, so it is not scored against every one of its active days.
+      const possibleCompletions = taskEndDate < startDate
+        ? 0
+        : !task.isRecurring
+        ? 1
+        : calculatePossibleCompletions(task.activeDays, startDate, taskEndDate);
       // Adjust possible completions by removing excluded days
       const adjustedPossible = possibleCompletions - excludedCount;
       const percentComplete = adjustedPossible > 0 ? (completedCount / adjustedPossible) * 100 : 0;

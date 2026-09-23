@@ -83,12 +83,16 @@ export async function POST(
         },
       });
 
-      // If it's a one-off task, delete it after completion
+      // A one-off task is done for good once it is marked, so retire it rather than
+      // deleting it. Deleting cascaded to the completion we just wrote, wiping the
+      // points earned from every report. End-of-day on completedDate keeps the task
+      // counted for the day it was finished; only the date part is used downstream.
       if (!task.isRecurring) {
-        await prisma.task.delete({
+        await prisma.task.update({
           where: { id: taskId },
+          data: { retiredAt: `${completedDate} 23:59:59` },
         });
-        return NextResponse.json({ completed: true, status, deleted: true });
+        return NextResponse.json({ completed: true, status, retired: true });
       }
       
       return NextResponse.json({ completed: true, status });

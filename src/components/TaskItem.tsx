@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Task } from '@/types/task';
-import { getLocalDate, getLastNDays } from '@/lib/utils/dateUtils';
+import { getLocalDate, getLocalDateTime, getLastNDays } from '@/lib/utils/dateUtils';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import CompletionDatePicker from './CompletionDatePicker';
@@ -166,12 +166,17 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, isActi
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this task?')) return;
+    if (!confirm(
+      `Remove "${task.title}" from the task list?\n\n` +
+      'It will stop showing up from now on. Past completions stay on record, ' +
+      'so points already earned and previous reports are unchanged.'
+    )) return;
 
     try {
-      const response = await fetch(`/api/tasks/${task.id}?tenantId=${tenantId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        `/api/tasks/${task.id}?tenantId=${tenantId}&localDateTime=${encodeURIComponent(getLocalDateTime())}`,
+        { method: 'DELETE' }
+      );
 
       if (response.ok) {
         onDelete();
@@ -412,8 +417,9 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, isActi
                 <button
                   onClick={handleDelete}
                   className="px-4 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+                  title="Stops showing this task from now on. Past completions are kept."
                 >
-                  Delete
+                  Remove
                 </button>
               </>
             )}

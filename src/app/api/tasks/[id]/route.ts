@@ -117,7 +117,12 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/tasks/[id] - Delete a task
+// DELETE /api/tasks/[id] - Remove a task going forward
+//
+// The task is retired rather than deleted: it disappears from task lists but its
+// completion history stays intact so past reports keep their points and streaks.
+// A task that has never been completed has no history worth keeping, so it is
+// deleted outright.
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -137,7 +142,10 @@ export async function DELETE(
     // Fetch task to validate tenant access
     const task = await prisma.task.findUnique({
       where: { id: parseInt(id) },
-      include: { assignedTo: true },
+      include: {
+        assignedTo: true,
+        _count: { select: { completions: true } },
+      },
     });
 
     if (!task) {
@@ -154,11 +162,24 @@ export async function DELETE(
       );
     }
 
-    await prisma.task.delete({
+    if (task._count.completions === 0) {
+      await prisma.task.delete({
+        where: { id: parseInt(id) },
+      });
+
+      return NextResponse.json({ message: 'Task deleted successfully', retired: false });
+    }
+
+    // retiredAt decides the last day reporting expects this task, so it must be the
+    // client's local time. Fall back to the server clock only for older clients.
+    const localDateTime = searchParams.get('localDateTime');
+
+    await prisma.task.update({
       where: { id: parseInt(id) },
+      data: { retiredAt: localDateTime || getLocalDateTime() },
     });
 
-    return NextResponse.json({ message: 'Task deleted successfully' });
+    return NextResponse.json({ message: 'Task removed going forward', retired: true });
   } catch (error) {
     console.error('Error deleting task:', error);
     return NextResponse.json(

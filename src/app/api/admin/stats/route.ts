@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
               assignedTo: {
                 tenantId: tenant.id,
               },
+              retiredAt: null, // Count live tasks only
             },
           }),
           prisma.taskCompletion.findMany({
