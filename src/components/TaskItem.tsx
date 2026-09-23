@@ -13,11 +13,13 @@ interface TaskItemProps {
   onUpdate: () => void;
   onDelete: () => void;
   isAdminMode: boolean;
+  /** Whether the task is scheduled for today. Admin mode also shows tasks that aren't. */
+  isActiveToday?: boolean;
   tenantId: number;
 }
 
 
-export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenantId }: TaskItemProps) {
+export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, isActiveToday = true, tenantId }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTask, setEditedTask] = useState(task);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -184,7 +186,7 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
       ref={setNodeRef}
       style={style}
       onClick={handleTaskClick}
-      className={`rounded-lg shadow-md p-6 transition-all cursor-pointer ${
+      className={`rounded-lg shadow-md p-6 transition-all cursor-pointer ${!isActiveToday ? 'opacity-75 ' : ''}${
         isCompletedToday
           ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-500'
           : isExcludedToday
@@ -346,6 +348,11 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, tenant
                 <p className="text-gray-600 dark:text-gray-400 mb-3">{task.description}</p>
               )}
               <div className="flex gap-2 mb-3 flex-wrap">
+                {!isActiveToday && (
+                  <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                    🗓 Not scheduled today
+                  </span>
+                )}
                 {!task.isRecurring && (
                   <span className="px-3 py-1 rounded-full text-sm font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
                     ✓ One-Off

@@ -108,8 +108,10 @@ export default function TaskList({ selectedPersonId, isAdminMode, tenantId, onTa
 
   const filteredTasks = tasks.filter(task => {
     const matchesPerson = displayPersonId === null || task.assignedToId === displayPersonId;
-    const isActiveToday = isTaskActiveToday(task.activeDays);
-    return matchesPerson && isActiveToday;
+    // In admin mode show every task assigned to the person, even ones not
+    // scheduled for today, so credit can be given for past days.
+    if (isAdminMode) return matchesPerson;
+    return matchesPerson && isTaskActiveToday(task.activeDays);
   });
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -226,6 +228,7 @@ export default function TaskList({ selectedPersonId, isAdminMode, tenantId, onTa
                   onUpdate={handleTaskUpdated}
                   onDelete={handleTaskDeleted}
                   isAdminMode={isAdminMode}
+                  isActiveToday={isTaskActiveToday(task.activeDays)}
                   tenantId={tenantId}
                 />
               ))}
