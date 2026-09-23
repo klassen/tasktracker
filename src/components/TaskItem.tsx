@@ -23,6 +23,7 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, isActi
   const [isEditing, setIsEditing] = useState(false);
   const [editedTask, setEditedTask] = useState(task);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
   const today = getLocalDate();
   // Local optimistic completion state
   const [optimisticCompleted, setOptimisticCompleted] = useState<null | boolean>(null);
@@ -166,11 +167,8 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, isActi
   };
 
   const handleDelete = async () => {
-    if (!confirm(
-      `Remove "${task.title}" from the task list?\n\n` +
-      'It will stop showing up from now on. Past completions stay on record, ' +
-      'so points already earned and previous reports are unchanged.'
-    )) return;
+    setConfirmingRemove(false);
+    setError(null);
 
     try {
       const response = await fetch(
@@ -178,11 +176,13 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, isActi
         { method: 'DELETE' }
       );
 
-      if (response.ok) {
-        onDelete();
+      if (!response.ok) {
+        throw new Error('Failed to remove task');
       }
+      onDelete();
     } catch (error) {
-      console.error('Failed to delete task:', error);
+      console.error('Failed to remove task:', error);
+      setError('Failed to remove task. Please try again.');
     }
   };
 
@@ -405,9 +405,30 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, isActi
             </div>
           </div>
 
-          <div className="flex gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
-            {isAdminMode && (
-              <>
+          <div onClick={(e) => e.stopPropagation()}>
+            {isAdminMode && (confirmingRemove ? (
+              <div className="rounded-lg border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3">
+                <p className="text-sm text-red-800 dark:text-red-300 mb-3">
+                  Remove this task from the list? It stops showing up from now on, but past
+                  completions stay on record so earned points and previous reports don&apos;t change.
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={handleDelete}
+                    className="px-4 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold"
+                  >
+                    Remove
+                  </button>
+                  <button
+                    onClick={() => setConfirmingRemove(false)}
+                    className="px-4 py-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={() => setIsEditing(true)}
                   className="px-4 py-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-sm"
@@ -415,14 +436,13 @@ export default function TaskItem({ task, onUpdate, onDelete, isAdminMode, isActi
                   Edit
                 </button>
                 <button
-                  onClick={handleDelete}
+                  onClick={() => setConfirmingRemove(true)}
                   className="px-4 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
-                  title="Stops showing this task from now on. Past completions are kept."
                 >
                   Remove
                 </button>
-              </>
-            )}
+              </div>
+            ))}
           </div>
         </>
       )}
